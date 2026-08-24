@@ -1,0 +1,19 @@
+# Node / backend
+backend/node_modules/
+backend/dist/
+backend/.env
+
+# iOS / Xcode
+ios/RacePace/App/AppSecrets.swift
+ios/build/
+ios/DerivedData/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcworkspace/xcuserdata/
+ios/.swiftpm/
+ios/*.ipa
+ios/*.dSYM.zip
+ios/*.dSYM
+
+# macOS
+.DS_Store

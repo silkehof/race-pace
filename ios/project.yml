@@ -1,0 +1,59 @@
+name: RacePace
+options:
+  bundleIdPrefix: com.silkehofmann
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+targets:
+  RacePace:
+    type: application
+    platform: iOS
+    sources:
+      - path: RacePace
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.silkehofmann.racepace
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_PREVIEWS: YES
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleDisplayName: RacePace
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.silkehofmann.racepace
+            CFBundleURLSchemes:
+              - racepace
+  RacePaceTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RacePaceTests
+    dependencies:
+      - target: RacePace
+  RacePaceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: RacePaceUITests
+    dependencies:
+      - target: RacePace
+schemes:
+  RacePace:
+    build:
+      targets:
+        RacePace: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - RacePaceTests

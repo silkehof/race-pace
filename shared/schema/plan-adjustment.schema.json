@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan-adjustment.schema.json",
+  "title": "ProposePlanAdjustment",
+  "type": "object",
+  "required": ["triggerEvent", "rationale", "changes"],
+  "additionalProperties": false,
+  "$defs": {
+    "workout": {
+      "type": "object",
+      "required": ["date", "type", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "easy_run",
+            "long_run",
+            "tempo",
+            "interval",
+            "race_pace",
+            "recovery",
+            "cross_train",
+            "strength",
+            "rest",
+            "race"
+          ]
+        },
+        "targetDistanceMeters": { "type": ["number", "null"], "minimum": 0 },
+        "targetDurationSeconds": { "type": ["number", "null"], "minimum": 0 },
+        "targetPaceSecPerKm": { "type": ["number", "null"], "minimum": 0 },
+        "description": { "type": "string", "minLength": 1 },
+        "coachNotes": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "properties": {
+    "triggerEvent": {
+      "type": "object",
+      "required": ["type", "workoutId", "details"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["skip", "reschedule", "correction"] },
+        "workoutId": { "type": "string", "minLength": 1 },
+        "details": { "type": "string" }
+      }
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["workoutId", "changeType", "before", "after"],
+        "additionalProperties": false,
+        "properties": {
+          "workoutId": { "type": ["string", "null"] },
+          "changeType": { "type": "string", "enum": ["modify", "insert", "remove"] },
+          "before": { "oneOf": [{ "$ref": "#/$defs/workout" }, { "type": "null" }] },
+          "after": { "oneOf": [{ "$ref": "#/$defs/workout" }, { "type": "null" }] }
+        }
+      }
+    }
+  }
+}

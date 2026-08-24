@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "training-plan.schema.json",
+  "title": "CreateTrainingPlan",
+  "type": "object",
+  "required": ["goal", "planStartDate", "planEndDate", "workouts", "rationale"],
+  "additionalProperties": false,
+  "$defs": {
+    "workout": {
+      "type": "object",
+      "required": ["date", "type", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "easy_run",
+            "long_run",
+            "tempo",
+            "interval",
+            "race_pace",
+            "recovery",
+            "cross_train",
+            "strength",
+            "rest",
+            "race"
+          ]
+        },
+        "targetDistanceMeters": { "type": ["number", "null"], "minimum": 0 },
+        "targetDurationSeconds": { "type": ["number", "null"], "minimum": 0 },
+        "targetPaceSecPerKm": { "type": ["number", "null"], "minimum": 0 },
+        "description": { "type": "string", "minLength": 1 },
+        "coachNotes": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "properties": {
+    "goal": {
+      "type": "object",
+      "required": ["raceName", "raceDate", "distanceMeters", "priority"],
+      "additionalProperties": false,
+      "properties": {
+        "raceName": { "type": "string", "minLength": 1 },
+        "raceDate": { "type": "string", "format": "date" },
+        "distanceMeters": { "type": "number", "exclusiveMinimum": 0 },
+        "priority": { "type": "string", "enum": ["A", "B", "C"] }
+      }
+    },
+    "planStartDate": { "type": "string", "format": "date" },
+    "planEndDate": { "type": "string", "format": "date" },
+    "workouts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/workout" }
+    },
+    "rationale": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Connecting…</title>
+</head>
+<body>
+  <p>Connecting to RacePace…</p>
+  <script>
+    // Strava's OAuth authorize step won't accept the app's racepace:// custom scheme directly
+    // (it requires an http(s) redirect_uri) — this page is that required https hop, forwarding
+    // straight to the app via the scheme ASWebAuthenticationSession is actually watching for.
+    // See docs/strava-app-setup.md.
+    window.location.replace("racepace://strava-callback" + window.location.search);
+  </script>
+</body>
+</html>

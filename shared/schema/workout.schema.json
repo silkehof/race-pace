@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workout.schema.json",
+  "title": "Workout",
+  "type": "object",
+  "required": ["date", "type", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "date": { "type": "string", "format": "date" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "easy_run",
+        "long_run",
+        "tempo",
+        "interval",
+        "race_pace",
+        "recovery",
+        "cross_train",
+        "strength",
+        "rest",
+        "race"
+      ]
+    },
+    "targetDistanceMeters": { "type": ["number", "null"], "minimum": 0 },
+    "targetDurationSeconds": { "type": ["number", "null"], "minimum": 0 },
+    "targetPaceSecPerKm": { "type": ["number", "null"], "minimum": 0 },
+    "description": { "type": "string", "minLength": 1 },
+    "coachNotes": { "type": ["string", "null"] }
+  }
+}
