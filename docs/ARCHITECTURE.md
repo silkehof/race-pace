@@ -2,7 +2,8 @@
 
 RacePace is a personal training-plan coach: it connects to Strava for training
 history, builds a race training plan through a chat conversation with an LLM
-coach, and adapts that plan when a workout is skipped or rescheduled.
+coach, and adapts that plan when a workout is skipped or rescheduled — or on
+a plain direct request (e.g. "relabel that as strength").
 
 This doc describes how the three parts of the repo fit together and what is
 actually implemented today vs. scaffolded for later. See the root
@@ -96,12 +97,21 @@ app
 - **`routes/coach.ts`** — `POST /api/coach/message`. Body:
   `{ mode: "create_plan" | "adjust_plan", message, history?, athleteContext?, currentPlan? }`.
   Picks the mode-specific rules block and tool, builds `knownWorkoutIds` from
-  `currentPlan.workouts[].id` for adjustment mode, and returns
-  `{ text, toolCall }`.
+  `currentPlan.workouts[].id` for the validation cross-check, and — for
+  `adjust_plan` — also JSON-stringifies the **whole** `currentPlan` (goal +
+  every workout's full detail, not just ids) into the prompt, mirroring how
+  `athleteContext` is appended for `create_plan`. This was a real early bug:
+  without it, the coach could confirm a `workoutId` existed but had no way to
+  know what that workout actually *was* — it could validate references but
+  not reason about them. Returns `{ text, toolCall }`.
 - **`prompts/`** — `systemPersona` (coach tone and philosophy — consistency
   over a perfect plan on paper, ≤10%/week long-run growth, always taper) plus
   two mode-specific rule blocks: `planGenerationRules` (building a plan from
-  scratch) and `adjustmentRules` (responding to a skip/reschedule).
+  scratch — including "distinct same-day activities get separate workout
+  entries, never folded into one description") and `adjustmentRules`
+  (responding to a skip/reschedule, **or** a direct edit request with no
+  skip/reschedule involved — `triggerEvent.type: "correction"` — e.g.
+  "relabel that as strength").
 
 `backend/test/` is still empty — none of this has automated test coverage
 yet, only the manual/curl verification described in the README.
@@ -147,8 +157,11 @@ Hand-maintained JSON Schema, not generated:
   race goal, plan date range, a list of workouts, and a rationale string
   shown to the athlete.
 - `plan-adjustment.schema.json` — the `propose_plan_adjustment` tool
-  payload: the triggering skip/reschedule event, a rationale, and a list of
-  changes (`modify`/`insert`/`remove`) each with a `before`/`after` workout.
+  payload: the triggering event (`skip`/`reschedule`/`correction`), a
+  rationale, and a list of changes (`modify`/`insert`/`remove`) each with a
+  `before`/`after` workout. `type` includes 10 categories now, including
+  `strength` (added mid-session, alongside `cross_train`, since generic
+  "cross training" was too vague a label for the app's own UI).
 
 The backend consumes these directly (`planValidation.ts` via `ajv`). The
 Agent SDK's tools (`schemas/agentTools.ts`) need a hand-written Zod mirror
@@ -164,71 +177,131 @@ worth watching if the contract starts changing often.
 SwiftUI app, generated via `xcodegen` from `ios/project.yml` (re-run
 `xcodegen generate` after adding/removing source files — the `.xcodeproj` is
 derived, not hand-edited). Custom URL scheme `racepace://` is registered for
-the Strava OAuth callback.
+the Strava OAuth callback — see the callback-page note below, that scheme
+alone isn't actually sufficient for Strava.
 
 ```
-App/            entry point, DI container, gitignored AppSecrets.swift
-Models/         SwiftData model + hand-mirrored backend DTOs
-Services/       Keychain, Strava OAuth + REST client, backend HTTP client
-ViewModels/     StravaConnectViewModel (only view model so far)
+App/             entry point, DI container, gitignored AppSecrets.swift
+Models/
+  DTOs/          hand-mirrored backend wire types (Strava + coach chat + plan/adjustment payloads)
+  CachedStravaActivity.swift    SwiftData — synced Strava activities (model defined, unused — see below)
+  StoredTrainingPlan.swift      SwiftData — the persisted plan (flattened goal fields + workouts relationship)
+  StoredWorkout.swift           SwiftData — one workout; typeRawValue + computed `type`, estimatedDistanceMeters helper
+Resources/       Theme.swift — app accent color + WorkoutStyle (color/SF Symbol/label per workout category)
+Utilities/       PlanDateFormatting.swift — fixed UTC/Gregorian/POSIX calendar for the plain "yyyy-MM-dd" date strings
+Services/        Keychain, Strava OAuth + REST client, backend HTTP client, PlanStore (SwiftData writes)
+ViewModels/      StravaConnectViewModel, ChatViewModel
 Views/
-  Onboarding/   Welcome -> Strava connect  (built)
-  Debug/        ActivityListView — throwaway proof-of-data-flow
-  Chat/         empty — chat UI not started
-  Plan/         empty — plan display not started
-  WorkoutDetail/ empty
-  Settings/     empty
+  Onboarding/    Welcome -> Strava connect; skips straight to MainTabView if already connected
+  MainTabView.swift   Coach / Plan tabs, each its own NavigationStack
+  Chat/          ChatView — the coaching conversation
+  Plan/          PlanView — week/day-grouped plan overview
+  WorkoutDetail/ WorkoutDetailView — full detail for one session
+  Debug/         ActivityListView — throwaway proof-of-data-flow, no longer linked from primary nav
 ```
 
-### Data flow implemented so far
+### Data flow
 
-1. `WelcomeView` -> `StravaConnectView`, backed by `StravaConnectViewModel`.
+**Onboarding & Strava connect:**
+1. `OnboardingFlowView` checks `StravaAuthService().isConnected` (Keychain)
+   once at launch — already-connected users skip straight to `MainTabView`,
+   everyone else sees `WelcomeView` -> `StravaConnectView`. A single
+   `StravaAuthService` instance is threaded through this whole chain
+   (`StravaConnectViewModel` no longer creates its own).
 2. `StravaAuthService.connect()` opens an `ASWebAuthenticationSession`
-   against Strava's authorize URL, and pulls `code` off the
-   `racepace://strava-callback` redirect.
-3. That code goes to the backend (`BackendAPIClient.exchangeStravaCode`,
-   `POST /api/strava/oauth/exchange`), which does the secret-bearing token
-   exchange and returns access/refresh tokens.
-4. Tokens are stored in the Keychain only (`KeychainStore`) — explicitly
-   never in SwiftData or `UserDefaults`, per a comment in
-   `StravaAuthService.swift` referencing an architecture decision.
-5. `StravaAuthService.validAccessToken()` transparently refreshes (via the
-   backend, `POST /api/strava/oauth/refresh`) when the cached token is
-   within 60s of expiry.
-6. `StravaAPIClient` calls Strava's `/athlete/activities` directly from the
-   device using that access token — the backend is not involved once a
-   token is minted.
-7. `ActivityListView` (under `Views/Debug/`) renders the result as a
-   proof-of-concept; it's explicitly marked as throwaway, to be replaced by
-   real activity display/matching UI later.
+   against Strava's authorize URL. **Strava rejects a custom-scheme
+   `redirect_uri` outright** (confirmed by testing — not just a callback-domain
+   mismatch), so the authorize call's `redirect_uri` actually points at a
+   tiny static HTTPS page (`docs/strava-callback-page/index.html`, hosted at
+   https://silkehof.github.io/racepace-strava-callback/, Authorization
+   Callback Domain on Strava's side set to `silkehof.github.io`). That page's
+   only job is `window.location.replace("racepace://strava-callback" + ...)`
+   — the actual second hop `ASWebAuthenticationSession` is watching for via
+   `callbackURLScheme`. Forking this project under a different account means
+   redeploying that page and updating `StravaAuthService.redirectURI` +
+   `stravaAuth.ts`'s `DEFAULT_REDIRECT_URI` + the Strava app setting to match.
+3. The resulting code goes to the backend (`POST /api/strava/oauth/exchange`,
+   passing no `redirect_uri` override — the backend defaults to the same
+   page), which does the secret-bearing token exchange and returns tokens.
+4. Tokens live in the Keychain only (`KeychainStore`) — never SwiftData or
+   `UserDefaults`. `StravaAuthService.validAccessToken()` refreshes via the
+   backend when within 60s of expiry.
+5. `CachedStravaActivity` (SwiftData) is defined but still unused —
+   `StravaAPIClient` fetches directly from Strava each time rather than
+   reading/writing that cache. `ActivityListView` (`Views/Debug/`) is the
+   only thing that calls it, and is no longer reachable from primary
+   navigation (see below) — kept only as reference/debug scaffolding.
 
-`CachedStravaActivity` (SwiftData `@Model`) exists as local storage for
-synced activities but nothing currently writes to it — `ActivityListView`
-fetches from the network each time rather than reading the cache.
+**Coaching chat & plan (`MainTabView`'s "Coach" tab, `ChatView`/`ChatViewModel`):**
+1. On appear, `loadAthleteContext()` best-effort pulls the last 28 days of
+   Strava activity into an `AthleteContextSummary` (weekly km, run count,
+   longest run) — silently skipped if it fails, never surfaced as a chat error.
+2. Every `send()` call **auto-detects mode from persisted state**, not a UI
+   toggle: it fetches the current `StoredTrainingPlan` via `FetchDescriptor`
+   (not `@Query` — this is a plain `@MainActor` class, not a View). No plan
+   yet -> `mode: "create_plan"`. A plan exists -> `mode: "adjust_plan"`, and
+   the **full** plan (goal + every workout's full detail, with ids) is sent
+   as `currentPlan` — see the backend note above on why full detail, not
+   just ids.
+3. The whole conversation is resent as flattened `history` each call (the
+   backend is stateless — see "Claude auth" above); only the plan itself
+   persists across turns/relaunches, not the chat transcript.
+4. A `create_training_plan` tool call -> `PlanStore.save` (insert-only; the
+   newest `StoredTrainingPlan` by `createdAt` is always "the" plan — no
+   delete-existing step, so a save bug can't wipe the only copy). A
+   `propose_plan_adjustment` tool call -> `PlanStore.apply`, which mutates
+   the existing plan's `workouts` relationship in place
+   (`modify`/`insert`/`remove`) and **propagates save errors** rather than
+   swallowing them (unlike `save` — this mutates existing user data, so a
+   silently dropped write would look fine for the rest of the session and
+   only revert on next launch). Either way the chat shows a plain "Saved —
+   check the Plan tab" confirmation; there's no more in-chat plan preview.
 
-### Not yet built
+**Plan overview ("Plan" tab, `PlanView`/`WorkoutDetailView`):**
+- `@Query`-driven straight off `StoredTrainingPlan`/`StoredWorkout` — no DTO
+  in sight, so it always reflects whatever's actually persisted. Empty state
+  when no plan exists yet.
+- Workouts are grouped by week (`PlanDateFormatting.weekIndex`, relative to
+  `planStartDate`) and then by day within each week — a day with more than
+  one independent session (e.g. a run plus a strength session) shows both as
+  separate rows under one date header, never merged into one entry's text.
+  Each week header sums `estimatedDistanceMeters` across its workouts
+  (falling back to duration÷pace when a workout has no explicit distance, so
+  duration-only sessions don't silently vanish from the total).
+- Each row shows a `WorkoutStyle` badge — color **and** SF Symbol, not color
+  alone, since hue-only category coding is a real accessibility gap — and
+  taps through to `WorkoutDetailView` for the full description, formatted
+  targets, and coach notes.
 
-No chat UI, no plan display, no workout detail, no settings screen — these
-correspond to the empty `Views/Chat`, `Views/Plan`, `Views/WorkoutDetail`,
-`Views/Settings` directories, and there's no view model or service yet that
-calls `POST /api/coach/message` (which now exists on the backend — see
-above — but nothing on iOS talks to it yet). `RacePaceTests` and
-`RacePaceUITests` targets exist in `project.yml` but currently contain no
-test files.
+### Known gaps, deliberately not built yet
+
+- **No automated tests** — `backend/test/`, `RacePaceTests`, `RacePaceUITests`
+  all exist as targets but contain no test files; everything so far has been
+  verified by hand (build + simulator + curl).
+- **Chat history itself isn't persisted** — only the plan is. Force-quitting
+  mid-conversation loses the transcript (but not the plan).
+- **No Settings screen** — `BackendAPIClient.baseURL` already supports a
+  `UserDefaults` override for pointing at a non-local backend, but there's no
+  UI to set it.
+- **`ActivityListView` is orphaned** — still present, still functional, just
+  no longer linked from anywhere now that `StravaConnectView` goes straight
+  to `MainTabView` once connected.
 
 ## Current state summary
 
 | Area | Status |
 |---|---|
-| Strava OAuth (backend + iOS) | Implemented end-to-end |
-| Strava activity fetch (iOS, direct) | Implemented (debug view only) |
-| Local activity caching (SwiftData) | Model defined, unused |
-| Claude chat proxy (backend) | Implemented and exposed via `POST /api/coach/message`, using subscription auth (Claude Agent SDK) instead of API billing — curl-testable, see README |
-| Plan generation / adjustment (iOS) | Not started (no UI or view model calling the backend endpoint yet) |
+| Strava OAuth (backend + iOS) | Implemented end-to-end, including the HTTPS-redirect-page workaround Strava's custom-scheme rejection required |
+| Strava activity fetch (iOS, direct) | Implemented; feeds athleteContext for plan creation. Local caching (SwiftData) still unused |
+| Claude chat proxy (backend) | Implemented — Claude Agent SDK, subscription auth, both create_plan and adjust_plan modes, full currentPlan echoed for adjustments |
+| Plan generation (iOS) | Implemented end-to-end: chat -> create_training_plan -> SwiftData persistence -> Plan tab |
+| Plan adjustment (iOS) | Implemented end-to-end: chat -> propose_plan_adjustment (skip/reschedule/correction) -> in-place SwiftData mutation -> Plan tab |
+| Plan UI (week/day grouping, categories, detail view) | Implemented |
+| Navigation (Coach/Plan switch, skip onboarding once connected) | Implemented |
 | Automated tests | None yet, in either backend or iOS |
 
-The natural next step implied by the code as it stands is building the
-chat UI and a corresponding view model on iOS that calls
-`POST /api/coach/message`, along with somewhere on iOS to persist the
-plan/adjustments that endpoint returns (SwiftData, alongside
-`CachedStravaActivity`).
+The natural next steps implied by the code as it stands: automated test
+coverage (currently zero), a Settings screen for the backend-URL override
+that already exists in code, and deciding whether `ActivityListView`
+deserves a real home in navigation or should be deleted now that it's
+orphaned.
