@@ -16,7 +16,6 @@
 		43B6988D8E627B7C72D53E47 /* PlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463C3F3240509CD4973807A3 /* PlanStore.swift */; };
 		49022415B146CAAF2BBB9FF8 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F7AC6AC29B668C00C95191 /* MainTabView.swift */; };
 		4DA1BC3DA8BBB2930BDB96BC /* BackendAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6837CCF56F163F31A9A31A65 /* BackendAPIClient.swift */; };
-		50B215BC1A1AB524C751CB7F /* StrengthRoutine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D619C992F75F61BCB67926F6 /* StrengthRoutine.swift */; };
 		5DCCB4E6F600F5A3DF4CB4D4 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226720BDB41C3979606401F9 /* OnboardingFlowView.swift */; };
 		5F9C6C9E2E8FC062E0E59DF9 /* PlanAdjustmentDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B15C965B8635EEB90E18EC /* PlanAdjustmentDTO.swift */; };
 		6412916BCEC492DB9D60A3A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5577F0E0BA9448283213E9E5 /* AppContainer.swift */; };
@@ -27,9 +26,11 @@
 		8C8714EA054185D8557C6CFB /* RacePaceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65CEE918671549C58AED5A39 /* RacePaceApp.swift */; };
 		9190E8CC6986F4956D96B759 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8EE2E15C219775A67FC3B6 /* WorkoutDetailView.swift */; };
 		99C5845540574D32B3C0EC3A /* CachedStravaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641A2260B478A053BBC26E45 /* CachedStravaActivity.swift */; };
+		A403A77AEC0FB52A50BAE802 /* AppearanceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D973FCF7901D5041C6EF6F4A /* AppearanceConfiguration.swift */; };
 		B55729D1A4468FFA9A7624D5 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C19CDEF826CD747C9CE326 /* KeychainStore.swift */; };
 		B5F716CECF1AD044CB76BCEC /* StravaAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD6AF8E063F4046CFAE4646 /* StravaAPIClient.swift */; };
 		C487A753B718448EDCAF96A9 /* StravaTokenResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4B00086901C4AC7558B2D56 /* StravaTokenResponse.swift */; };
+		CA72A1942DA6055B29B0D6A6 /* PhasedDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105135755CFA3291AB2C264D /* PhasedDescription.swift */; };
 		D21DC7C2C6D67B67D96BFFC1 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0052632949E580E1F7C31E9 /* WelcomeView.swift */; };
 		D58137592FB9EC23E271CC59 /* AppSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 307E5187425A862512EA68DF /* AppSecrets.swift */; };
 		D6FFF96E449F882BA69EFE13 /* StoredTrainingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7998BA33303B0B5FEBC4BAA9 /* StoredTrainingPlan.swift */; };
@@ -58,6 +59,7 @@
 
 /* Begin PBXFileReference section */
 		0B8EE2E15C219775A67FC3B6 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		105135755CFA3291AB2C264D /* PhasedDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhasedDescription.swift; sourceTree = "<group>"; };
 		17B15C965B8635EEB90E18EC /* PlanAdjustmentDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanAdjustmentDTO.swift; sourceTree = "<group>"; };
 		1C3D29717A6F6E4942D0CA5F /* StravaConnectViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaConnectViewModel.swift; sourceTree = "<group>"; };
 		226720BDB41C3979606401F9 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
@@ -87,8 +89,8 @@
 		C2F7AC6AC29B668C00C95191 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CCD6AF8E063F4046CFAE4646 /* StravaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaAPIClient.swift; sourceTree = "<group>"; };
 		CF90E4F71BE669C54C0B16E1 /* TrainingPlanDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanDTO.swift; sourceTree = "<group>"; };
-		D619C992F75F61BCB67926F6 /* StrengthRoutine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthRoutine.swift; sourceTree = "<group>"; };
 		D6C19CDEF826CD747C9CE326 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		D973FCF7901D5041C6EF6F4A /* AppearanceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceConfiguration.swift; sourceTree = "<group>"; };
 		FD9D818CA2CB61C8A299990D /* RacePaceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RacePaceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -146,6 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				5577F0E0BA9448283213E9E5 /* AppContainer.swift */,
+				D973FCF7901D5041C6EF6F4A /* AppearanceConfiguration.swift */,
 				307E5187425A862512EA68DF /* AppSecrets.swift */,
 				25F73091355746DAF4F1321C /* AppSecrets.swift.example */,
 				65CEE918671549C58AED5A39 /* RacePaceApp.swift */,
@@ -262,8 +265,8 @@
 		D129A78C85C9360A454698F7 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				105135755CFA3291AB2C264D /* PhasedDescription.swift */,
 				29C6C8BE70812EA6A096A47C /* PlanDateFormatting.swift */,
-				D619C992F75F61BCB67926F6 /* StrengthRoutine.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -386,6 +389,7 @@
 				EA1220893A9C84C2EA0A7BDE /* ActivityListView.swift in Sources */,
 				6412916BCEC492DB9D60A3A2 /* AppContainer.swift in Sources */,
 				D58137592FB9EC23E271CC59 /* AppSecrets.swift in Sources */,
+				A403A77AEC0FB52A50BAE802 /* AppearanceConfiguration.swift in Sources */,
 				4DA1BC3DA8BBB2930BDB96BC /* BackendAPIClient.swift in Sources */,
 				99C5845540574D32B3C0EC3A /* CachedStravaActivity.swift in Sources */,
 				818F88C26B64F860B0670986 /* ChatView.swift in Sources */,
@@ -394,6 +398,7 @@
 				B55729D1A4468FFA9A7624D5 /* KeychainStore.swift in Sources */,
 				49022415B146CAAF2BBB9FF8 /* MainTabView.swift in Sources */,
 				5DCCB4E6F600F5A3DF4CB4D4 /* OnboardingFlowView.swift in Sources */,
+				CA72A1942DA6055B29B0D6A6 /* PhasedDescription.swift in Sources */,
 				5F9C6C9E2E8FC062E0E59DF9 /* PlanAdjustmentDTO.swift in Sources */,
 				17EDB677FAA09FC89084947D /* PlanDateFormatting.swift in Sources */,
 				43B6988D8E627B7C72D53E47 /* PlanStore.swift in Sources */,
@@ -407,7 +412,6 @@
 				676DD5B42A60A72E5DD0E297 /* StravaConnectView.swift in Sources */,
 				F7AB9CAF80627F23D00345EF /* StravaConnectViewModel.swift in Sources */,
 				C487A753B718448EDCAF96A9 /* StravaTokenResponse.swift in Sources */,
-				50B215BC1A1AB524C751CB7F /* StrengthRoutine.swift in Sources */,
 				E927729DDAB207ED004930AD /* Theme.swift in Sources */,
 				1B5426CF17868DF06177D0F7 /* TrainingPlanDTO.swift in Sources */,
 				D21DC7C2C6D67B67D96BFFC1 /* WelcomeView.swift in Sources */,

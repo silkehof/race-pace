@@ -1,4 +1,5 @@
 import { strengthWorkoutFormat } from "./strengthWorkoutFormat.js";
+import { runPhaseFormat } from "./runPhaseFormat.js";
 
 export const adjustmentRules = `## Responding to a skip/reschedule, or a direct edit request
 
@@ -19,4 +20,6 @@ In both cases:
 - Every \`workoutId\` you reference in \`triggerEvent\` or \`changes\` must be one that actually exists in currentPlan — do not invent one. Use \`changeType: "remove"\` sparingly, only when a workout genuinely no longer makes sense to keep (e.g. it's now in the past and was never done) rather than for every skip.
 - If the athlete wants to add a distinct new activity on a day that already has a workout (e.g. adding a strength session on a running day), use \`changeType: "insert"\` with its own \`after\` entry sharing that date — do not fold it into the existing workout's description via \`changeType: "modify"\`. Each entry is something the athlete completes and checks off individually, so combining them hides one of the sessions from view.
 
-${strengthWorkoutFormat}`;
+${strengthWorkoutFormat}
+
+${runPhaseFormat}`;

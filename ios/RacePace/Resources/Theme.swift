@@ -10,19 +10,14 @@ extension Color {
         }))
     }
 
-    /// Deep teal-green — distinct from Strava's orange branding and default iOS blue, fits a
-    /// trail/running coach app. Lightened in dark mode so it still reads as vivid against a near-black
-    /// background rather than sinking into it.
-    static let racePaceAccent = Color(
-        light: Color(red: 0.09, green: 0.45, blue: 0.36),
-        dark: Color(red: 0.36, green: 0.78, blue: 0.64)
-    )
+    /// Primary structural "ink" color for large fills — buttons, message bubbles, hero gradients.
+    /// Intentionally constant across light/dark mode (not theme-adaptive like the rest of the
+    /// palette): a solid CTA color that shifts with system appearance reads as broken, not
+    /// theme-aware, so this stays a fixed dark neutral either way.
+    static let racePaceCharcoal = Color(red: 0.17, green: 0.17, blue: 0.19)
 
-    /// Deeper end of the accent gradient used on hero surfaces (onboarding, goal card).
-    static let racePaceAccentDeep = Color(
-        light: Color(red: 0.04, green: 0.22, blue: 0.19),
-        dark: Color(red: 0.03, green: 0.16, blue: 0.14)
-    )
+    /// Deeper end of the charcoal gradient/fills — also constant, see racePaceCharcoal.
+    static let racePaceCharcoalDeep = Color(red: 0.07, green: 0.07, blue: 0.08)
 
     /// Warm off-white app background in light mode, warm near-black (not pure black) in dark —
     /// keeps screens from reading as plain system white/black.
@@ -37,24 +32,29 @@ extension Color {
         dark: Color(red: 0.13, green: 0.14, blue: 0.14)
     )
 
-    /// Warm coral, used sparingly for emphasis (e.g. race day, streak highlights) so the palette
-    /// isn't monochrome green.
+    /// The "pop" accent — warm coral used for icon tints, stat highlights, badges, and small
+    /// interactive accents (tab tint, spinners), and for the race-day workout category (the two
+    /// uses sharing one color is deliberate — race day is the app's central moment, so it gets
+    /// the app's own accent rather than a color from the generic per-type palette below).
+    /// Deliberately not used as a large solid fill: too light/mid-saturation to pair with white
+    /// text at button size, so big fills (buttons, message bubbles, hero surfaces) use
+    /// racePaceCharcoal instead.
     static let racePaceCoral = Color(
         light: Color(red: 0.82, green: 0.35, blue: 0.24),
         dark: Color(red: 0.92, green: 0.5, blue: 0.38)
     )
 
-    /// Text/icon color for content sitting directly on the accent gradient — stays near-white in
-    /// both modes since the gradient itself is always dark.
+    /// Text/icon color for content sitting directly on a charcoal fill — stays near-white in both
+    /// modes since charcoal itself is always dark.
     static let racePaceOnAccent = Color(red: 0.98, green: 0.99, blue: 0.97)
 }
 
 // Mirrors SwiftUI's own pattern for named colors (`.red`, `.blue`, ...) so the palette can be
 // used with the same leading-dot shorthand in `.foregroundStyle(...)`/`.background(...)` calls,
-// not just as `Color.racePaceAccent`.
+// not just as `Color.racePaceCoral`.
 extension ShapeStyle where Self == Color {
-    static var racePaceAccent: Color { .racePaceAccent }
-    static var racePaceAccentDeep: Color { .racePaceAccentDeep }
+    static var racePaceCharcoal: Color { .racePaceCharcoal }
+    static var racePaceCharcoalDeep: Color { .racePaceCharcoalDeep }
     static var racePaceCanvas: Color { .racePaceCanvas }
     static var racePaceCard: Color { .racePaceCard }
     static var racePaceCoral: Color { .racePaceCoral }
@@ -63,7 +63,7 @@ extension ShapeStyle where Self == Color {
 
 extension LinearGradient {
     static let racePaceHero = LinearGradient(
-        colors: [.racePaceAccent, .racePaceAccentDeep],
+        colors: [.racePaceCharcoal, .racePaceCharcoalDeep],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -75,6 +75,10 @@ extension View {
         self
             .padding(padding)
             .background(Color.racePaceCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            )
             .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
     }
 
@@ -98,7 +102,10 @@ extension Font {
 
 /// Maps each workout category to a color + SF Symbol + label. Color alone is a real accessibility
 /// gap for colorblind users (e.g. .blue vs .indigo look alike) — the symbol carries the category
-/// redundantly so it reads correctly without relying on hue discrimination.
+/// redundantly so it reads correctly without relying on hue discrimination. This is a distinct
+/// palette from the app's charcoal/coral theme by design — ten categories need to stay visually
+/// distinguishable from each other, which a two-color brand palette can't do on its own. (race
+/// day is the one deliberate exception — see racePaceCoral.)
 enum WorkoutStyle {
     static func color(for type: WorkoutType) -> Color {
         switch type {

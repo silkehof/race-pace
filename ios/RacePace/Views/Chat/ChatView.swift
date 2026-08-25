@@ -22,10 +22,10 @@ struct ChatView: View {
                             if viewModel.createdPlan != nil || viewModel.planWasUpdated {
                                 Label("Saved — check the Plan tab", systemImage: "checkmark.circle.fill")
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.racePaceAccent)
+                                    .foregroundStyle(.racePaceCoral)
                             }
                             if viewModel.isSending {
-                                ProgressView().tint(.racePaceAccent)
+                                ProgressView().tint(.racePaceCoral)
                             }
                         }
                         .padding()
@@ -56,7 +56,7 @@ struct ChatView: View {
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.racePaceOnAccent)
                             .frame(width: 36, height: 36)
-                            .background(.racePaceAccent, in: Circle())
+                            .background(.racePaceCharcoal, in: Circle())
                     }
                     .disabled(viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
                     .opacity(viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? 0.4 : 1)
@@ -77,7 +77,7 @@ struct ChatView: View {
                 .foregroundStyle(message.role == .user ? .racePaceOnAccent : .primary)
                 .padding(12)
                 .background(
-                    message.role == .user ? AnyShapeStyle(Color.racePaceAccent) : AnyShapeStyle(Color.racePaceCard),
+                    message.role == .user ? AnyShapeStyle(Color.racePaceCharcoal) : AnyShapeStyle(Color.racePaceCard),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                 )
             if message.role == .assistant { Spacer(minLength: 40) }

@@ -101,7 +101,7 @@ struct PlanView: View {
                 Spacer()
                 Text("\(week.totalKm, specifier: "%.1f") km planned")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.racePaceAccent)
+                    .foregroundStyle(.racePaceCoral)
             }
 
             ForEach(week.days) { day in
@@ -153,11 +153,14 @@ struct PlanView: View {
     }
 
     private func rowSubtitle(for workout: StoredWorkout) -> String {
-        guard workout.type == .strength, let routine = StrengthRoutine.parse(workout.workoutDescription) else {
+        guard let phases = PhasedDescription.parse(workout.workoutDescription) else {
             return workout.workoutDescription
         }
-        let count = routine.exercises.count
-        return "\(count) exercise\(count == 1 ? "" : "s") · \(routine.exercises.first ?? "")"
+        if workout.type == .strength {
+            let count = phases.mainExercises.count
+            return "\(count) exercise\(count == 1 ? "" : "s") · \(phases.mainExercises.first ?? "")"
+        }
+        return phases.main
     }
 
     private struct DayGroup: Identifiable {

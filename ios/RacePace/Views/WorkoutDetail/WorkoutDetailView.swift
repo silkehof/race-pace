@@ -35,10 +35,20 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    /// Only these types get the warm-up/main/cooldown phase breakdown — easy/long/recovery runs
+    /// are one continuous effort with no distinct phases, so they stay a plain description (see
+    /// runPhaseFormat.ts / strengthWorkoutFormat.ts, which only require this structure for these).
+    private var isPhasedType: Bool {
+        switch workout.type {
+        case .strength, .tempo, .interval, .racePace: true
+        default: false
+        }
+    }
+
     @ViewBuilder
     private var descriptionCard: some View {
-        if workout.type == .strength, let routine = StrengthRoutine.parse(workout.workoutDescription) {
-            strengthRoutineCard(routine)
+        if isPhasedType, let phases = PhasedDescription.parse(workout.workoutDescription) {
+            phasedCard(phases)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Description").racePaceSectionLabel()
@@ -50,27 +60,31 @@ struct WorkoutDetailView: View {
         }
     }
 
-    private func strengthRoutineCard(_ routine: StrengthRoutine) -> some View {
+    private func phasedCard(_ phases: PhasedDescription) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             routineSection(title: "Warm-up", icon: "flame.fill") {
-                Text(routine.warmup).font(.subheadline)
+                Text(phases.warmup).font(.subheadline)
             }
 
-            routineSection(title: "Main", icon: "dumbbell.fill") {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(routine.exercises, id: \.self) { exercise in
-                        HStack(alignment: .top, spacing: 8) {
-                            Circle()
-                                .fill(Color.racePaceAccent)
-                                .frame(width: 6, height: 6)
-                                .padding(.top, 6)
-                            Text(exercise).font(.subheadline)
+            routineSection(title: "Main", icon: workout.type == .strength ? "dumbbell.fill" : "bolt.fill") {
+                if workout.type == .strength {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(phases.mainExercises, id: \.self) { exercise in
+                            HStack(alignment: .top, spacing: 8) {
+                                Circle()
+                                    .fill(Color.racePaceCoral)
+                                    .frame(width: 6, height: 6)
+                                    .padding(.top, 6)
+                                Text(exercise).font(.subheadline)
+                            }
                         }
                     }
+                } else {
+                    Text(phases.main).font(.subheadline)
                 }
             }
 
-            if let cooldown = routine.cooldown {
+            if let cooldown = phases.cooldown {
                 routineSection(title: "Cooldown", icon: "leaf.fill") {
                     Text(cooldown).font(.subheadline)
                 }
@@ -84,7 +98,7 @@ struct WorkoutDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label(title, systemImage: icon)
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.racePaceAccent)
+                .foregroundStyle(.racePaceCoral)
             content()
         }
     }
@@ -134,7 +148,7 @@ struct WorkoutDetailView: View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundStyle(.racePaceAccent)
+                .foregroundStyle(.racePaceCoral)
             Text(value)
                 .font(.racePaceStat(20))
             Text(unit)

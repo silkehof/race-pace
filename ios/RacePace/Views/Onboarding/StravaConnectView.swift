@@ -26,7 +26,7 @@ struct StravaConnectView: View {
 
                 Image(systemName: "link.circle.fill")
                     .font(.system(size: 64))
-                    .foregroundStyle(.racePaceAccent)
+                    .foregroundStyle(.racePaceCoral)
 
                 VStack(spacing: 10) {
                     Text("Connect Strava")
@@ -55,7 +55,7 @@ struct StravaConnectView: View {
                         .padding(.vertical, 14)
                     }
                     .buttonStyle(.plain)
-                    .background(.racePaceAccent, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(.racePaceCharcoal, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .foregroundStyle(.racePaceOnAccent)
                     .disabled(viewModel.isConnecting)
 

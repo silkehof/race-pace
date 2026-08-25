@@ -15,7 +15,7 @@ struct MainTabView: View {
             }
             .tabItem { Label("Plan", systemImage: "calendar") }
         }
-        .tint(.racePaceAccent)
+        .tint(.racePaceCoral)
     }
 }
 

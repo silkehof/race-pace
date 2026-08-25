@@ -49,7 +49,7 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.plain)
                 .background(.racePaceOnAccent, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .foregroundStyle(.racePaceAccentDeep)
+                .foregroundStyle(.racePaceCharcoalDeep)
                 .padding(.horizontal, 32)
                 .padding(.bottom, 48)
             }

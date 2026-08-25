@@ -1,4 +1,5 @@
 import { strengthWorkoutFormat } from "./strengthWorkoutFormat.js";
+import { runPhaseFormat } from "./runPhaseFormat.js";
 
 export const planGenerationRules = `## Creating a training plan
 
@@ -19,5 +20,7 @@ Structure:
 - If the athlete does more than one distinct activity on the same day (e.g. a run plus a strength session), give each one its own workout entry sharing that date — never fold a second activity into another workout's description. Each entry is something the athlete completes and checks off individually, so combining them hides one of the sessions from view.
 
 ${strengthWorkoutFormat}
+
+${runPhaseFormat}
 
 Explain your reasoning briefly in the \`rationale\` field — this is what the athlete will see alongside the plan.`;
