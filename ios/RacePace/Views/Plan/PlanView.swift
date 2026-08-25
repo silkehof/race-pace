@@ -7,9 +7,11 @@ struct PlanView: View {
     private var plan: StoredTrainingPlan? { plans.first }
 
     var body: some View {
-        Group {
+        ZStack {
+            Color.racePaceCanvas.ignoresSafeArea()
+
             if let plan {
-                planList(for: plan)
+                planScroll(for: plan)
             } else {
                 ContentUnavailableView(
                     "No plan yet",
@@ -22,53 +24,132 @@ struct PlanView: View {
     }
 
     @ViewBuilder
-    private func planList(for plan: StoredTrainingPlan) -> some View {
-        List {
-            Section("Goal") {
-                Text(plan.raceName).font(.headline)
-                Text("\(Int(plan.distanceMeters / 1000)) km · \(PlanDateFormatting.displayString(from: plan.raceDate)) · Priority \(plan.priority)")
-                    .foregroundStyle(.secondary)
+    private func planScroll(for plan: StoredTrainingPlan) -> some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                goalCard(for: plan)
+                rationaleCard(for: plan)
+                ForEach(weekGroups(for: plan)) { week in
+                    weekCard(week)
+                }
             }
-            Section("Coach's rationale") {
-                Text(plan.rationale)
+            .padding(16)
+        }
+    }
+
+    @ViewBuilder
+    private func goalCard(for plan: StoredTrainingPlan) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("GOAL")
+                    .font(.caption.weight(.bold))
+                    .tracking(0.8)
+                    .foregroundStyle(.racePaceOnAccent.opacity(0.75))
+                Spacer()
+                Text("PRIORITY \(plan.priority)")
+                    .font(.caption.weight(.bold))
+                    .tracking(0.6)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.16), in: Capsule())
+                    .foregroundStyle(.racePaceOnAccent)
             }
-            ForEach(weekGroups(for: plan)) { week in
-                Section("Week \(week.index + 1) · \(week.totalKm, specifier: "%.1f") km planned") {
-                    ForEach(week.days) { day in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(PlanDateFormatting.displayString(from: day.date))
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            // A day can hold more than one independent session (e.g. a run plus a
-                            // strength session) — each gets its own row/detail, never merged.
-                            ForEach(day.workouts) { workout in
-                                NavigationLink(destination: WorkoutDetailView(workout: workout)) {
-                                    workoutRow(workout)
-                                }
-                            }
+
+            Text(plan.raceName)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(.racePaceOnAccent)
+
+            HStack(spacing: 28) {
+                statColumn(value: "\(Int(plan.distanceMeters / 1000))", unit: "km")
+                statColumn(value: PlanDateFormatting.displayString(from: plan.raceDate), unit: "race day")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(LinearGradient.racePaceHero, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+    }
+
+    private func statColumn(value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.racePaceStat(22))
+                .foregroundStyle(.racePaceOnAccent)
+            Text(unit)
+                .font(.caption)
+                .foregroundStyle(.racePaceOnAccent.opacity(0.75))
+        }
+    }
+
+    @ViewBuilder
+    private func rationaleCard(for plan: StoredTrainingPlan) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Coach's rationale").racePaceSectionLabel()
+            Text(plan.rationale)
+                .font(.subheadline)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .racePaceCard()
+    }
+
+    @ViewBuilder
+    private func weekCard(_ week: WeekGroup) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Week \(week.index + 1)")
+                    .font(.headline)
+                Spacer()
+                Text("\(week.totalKm, specifier: "%.1f") km planned")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.racePaceAccent)
+            }
+
+            ForEach(week.days) { day in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(PlanDateFormatting.displayString(from: day.date))
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    // A day can hold more than one independent session (e.g. a run plus a
+                    // strength session) — each gets its own row/detail, never merged.
+                    ForEach(day.workouts) { workout in
+                        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                            workoutRow(workout)
                         }
-                        .padding(.vertical, 2)
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
+        .racePaceCard()
     }
 
     @ViewBuilder
     private func workoutRow(_ workout: StoredWorkout) -> some View {
         HStack(spacing: 10) {
-            Label(WorkoutStyle.label(for: workout.type), systemImage: WorkoutStyle.symbol(for: workout.type))
-                .font(.caption.bold())
+            Image(systemName: WorkoutStyle.symbol(for: workout.type))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(WorkoutStyle.color(for: workout.type))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(WorkoutStyle.color(for: workout.type).opacity(0.15))
-                .clipShape(Capsule())
-            Text(workout.workoutDescription)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                .frame(width: 30, height: 30)
+                .background(WorkoutStyle.color(for: workout.type).opacity(0.15), in: Circle())
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(WorkoutStyle.label(for: workout.type))
+                    .font(.subheadline.weight(.semibold))
+                Text(workout.workoutDescription)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(Color.racePaceCanvas, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private struct DayGroup: Identifiable {

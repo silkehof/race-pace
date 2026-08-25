@@ -9,43 +9,60 @@ struct ChatView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(viewModel.messages) { message in
-                            bubble(for: message)
+        ZStack {
+            Color.racePaceCanvas.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            ForEach(viewModel.messages) { message in
+                                bubble(for: message)
+                            }
+                            if viewModel.createdPlan != nil || viewModel.planWasUpdated {
+                                Label("Saved — check the Plan tab", systemImage: "checkmark.circle.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.racePaceAccent)
+                            }
+                            if viewModel.isSending {
+                                ProgressView().tint(.racePaceAccent)
+                            }
                         }
-                        if viewModel.createdPlan != nil || viewModel.planWasUpdated {
-                            Label("Saved — check the Plan tab", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-                        if viewModel.isSending {
-                            ProgressView()
-                        }
+                        .padding()
+                        .id("bottom")
                     }
-                    .padding()
-                    .id("bottom")
+                    .onChange(of: viewModel.messages.count) {
+                        withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
+                    }
                 }
-                .onChange(of: viewModel.messages.count) {
-                    withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                        .padding(.horizontal)
                 }
-            }
 
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-                    .font(.footnote)
-                    .padding(.horizontal)
-            }
+                HStack(alignment: .bottom, spacing: 10) {
+                    TextField("Message your coach", text: $viewModel.draftText, axis: .vertical)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.racePaceCard, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            HStack(alignment: .bottom) {
-                TextField("Message your coach", text: $viewModel.draftText, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                Button("Send") { Task { await viewModel.send(modelContext: modelContext) } }
+                    Button {
+                        Task { await viewModel.send(modelContext: modelContext) }
+                    } label: {
+                        Image(systemName: "arrow.up")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.racePaceOnAccent)
+                            .frame(width: 36, height: 36)
+                            .background(.racePaceAccent, in: Circle())
+                    }
                     .disabled(viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
+                    .opacity(viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? 0.4 : 1)
+                }
+                .padding(12)
             }
-            .padding()
         }
         .navigationTitle("Coach")
         .task { await viewModel.loadAthleteContext() }
@@ -56,9 +73,13 @@ struct ChatView: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
             Text(message.content)
-                .padding(10)
-                .background(message.role == .user ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .font(.subheadline)
+                .foregroundStyle(message.role == .user ? .racePaceOnAccent : .primary)
+                .padding(12)
+                .background(
+                    message.role == .user ? AnyShapeStyle(Color.racePaceAccent) : AnyShapeStyle(Color.racePaceCard),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
             if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
