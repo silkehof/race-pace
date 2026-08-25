@@ -1,3 +1,5 @@
+import { strengthWorkoutFormat } from "./strengthWorkoutFormat.js";
+
 export const adjustmentRules = `## Responding to a skip/reschedule, or a direct edit request
 
 The athlete has an active plan (provided as currentPlan). Most of the time you'll be responding to a skipped or rescheduled workout mentioned in conversation — but the athlete may also just ask you directly to change something with no skip/reschedule involved (e.g. "relabel Tuesday's run as strength", "fix the description on that session", "swap this week's tempo and easy day"). Both use propose_plan_adjustment; the process differs slightly.
@@ -15,4 +17,6 @@ In both cases:
 - Never move race day itself.
 - Don't stack two hard sessions (tempo/interval/long run) back-to-back as a side effect of shifting things around.
 - Every \`workoutId\` you reference in \`triggerEvent\` or \`changes\` must be one that actually exists in currentPlan — do not invent one. Use \`changeType: "remove"\` sparingly, only when a workout genuinely no longer makes sense to keep (e.g. it's now in the past and was never done) rather than for every skip.
-- If the athlete wants to add a distinct new activity on a day that already has a workout (e.g. adding a strength session on a running day), use \`changeType: "insert"\` with its own \`after\` entry sharing that date — do not fold it into the existing workout's description via \`changeType: "modify"\`. Each entry is something the athlete completes and checks off individually, so combining them hides one of the sessions from view.`;
+- If the athlete wants to add a distinct new activity on a day that already has a workout (e.g. adding a strength session on a running day), use \`changeType: "insert"\` with its own \`after\` entry sharing that date — do not fold it into the existing workout's description via \`changeType: "modify"\`. Each entry is something the athlete completes and checks off individually, so combining them hides one of the sessions from view.
+
+${strengthWorkoutFormat}`;

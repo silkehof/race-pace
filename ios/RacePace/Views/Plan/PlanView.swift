@@ -135,7 +135,7 @@ struct PlanView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(WorkoutStyle.label(for: workout.type))
                     .font(.subheadline.weight(.semibold))
-                Text(workout.workoutDescription)
+                Text(rowSubtitle(for: workout))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -150,6 +150,14 @@ struct PlanView: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
         .background(Color.racePaceCanvas, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func rowSubtitle(for workout: StoredWorkout) -> String {
+        guard workout.type == .strength, let routine = StrengthRoutine.parse(workout.workoutDescription) else {
+            return workout.workoutDescription
+        }
+        let count = routine.exercises.count
+        return "\(count) exercise\(count == 1 ? "" : "s") · \(routine.exercises.first ?? "")"
     }
 
     private struct DayGroup: Identifiable {

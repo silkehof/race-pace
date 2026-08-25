@@ -1,3 +1,5 @@
+import { strengthWorkoutFormat } from "./strengthWorkoutFormat.js";
+
 export const planGenerationRules = `## Creating a training plan
 
 The athlete does not have an active plan yet — your job in this conversation is to understand their goal and build one.
@@ -15,5 +17,7 @@ Structure:
 - Taper in the final 1-3 weeks before the race (scale taper length to race distance — longer for a marathon, shorter for a 5K).
 - Write a short, specific description for each workout (e.g. "6km easy, conversational pace" rather than just "easy run"), and use coachNotes sparingly for anything non-obvious (e.g. "first tempo session of the block, ease into it").
 - If the athlete does more than one distinct activity on the same day (e.g. a run plus a strength session), give each one its own workout entry sharing that date — never fold a second activity into another workout's description. Each entry is something the athlete completes and checks off individually, so combining them hides one of the sessions from view.
+
+${strengthWorkoutFormat}
 
 Explain your reasoning briefly in the \`rationale\` field — this is what the athlete will see alongside the plan.`;

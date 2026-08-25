@@ -15,13 +15,7 @@ struct WorkoutDetailView: View {
                         statTiles
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description").racePaceSectionLabel()
-                        Text(workout.workoutDescription)
-                            .font(.subheadline)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .racePaceCard()
+                    descriptionCard
 
                     if let notes = workout.coachNotes {
                         VStack(alignment: .leading, spacing: 8) {
@@ -39,6 +33,60 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(PlanDateFormatting.displayString(from: workout.date))
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private var descriptionCard: some View {
+        if workout.type == .strength, let routine = StrengthRoutine.parse(workout.workoutDescription) {
+            strengthRoutineCard(routine)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Description").racePaceSectionLabel()
+                Text(workout.workoutDescription)
+                    .font(.subheadline)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .racePaceCard()
+        }
+    }
+
+    private func strengthRoutineCard(_ routine: StrengthRoutine) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            routineSection(title: "Warm-up", icon: "flame.fill") {
+                Text(routine.warmup).font(.subheadline)
+            }
+
+            routineSection(title: "Main", icon: "dumbbell.fill") {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(routine.exercises, id: \.self) { exercise in
+                        HStack(alignment: .top, spacing: 8) {
+                            Circle()
+                                .fill(Color.racePaceAccent)
+                                .frame(width: 6, height: 6)
+                                .padding(.top, 6)
+                            Text(exercise).font(.subheadline)
+                        }
+                    }
+                }
+            }
+
+            if let cooldown = routine.cooldown {
+                routineSection(title: "Cooldown", icon: "leaf.fill") {
+                    Text(cooldown).font(.subheadline)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .racePaceCard()
+    }
+
+    private func routineSection(title: String, icon: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.racePaceAccent)
+            content()
+        }
     }
 
     private var hasStats: Bool {
