@@ -2,7 +2,10 @@ import SwiftData
 import SwiftUI
 
 struct PlanView: View {
+    let authService: StravaAuthService
+
     @Query(sort: \StoredTrainingPlan.createdAt, order: .reverse) private var plans: [StoredTrainingPlan]
+    @Environment(\.modelContext) private var modelContext
 
     private var plan: StoredTrainingPlan? { plans.first }
 
@@ -21,6 +24,16 @@ struct PlanView: View {
             }
         }
         .navigationTitle("Your Plan")
+        .task { await syncCompletedWorkouts() }
+    }
+
+    /// Best-effort, same pattern as ChatViewModel.loadAthleteContext — a failed/skipped Strava
+    /// fetch just means completion stays whatever it already was, never surfaced as an error.
+    private func syncCompletedWorkouts() async {
+        guard let plan, let startDate = PlanDateFormatting.date(from: plan.planStartDate) else { return }
+        let client = StravaAPIClient(authService: authService)
+        guard let activities = try? await client.recentActivities(after: startDate) else { return }
+        ActivityMatcher.match(activities, to: plan, in: modelContext)
     }
 
     @ViewBuilder
@@ -112,15 +125,30 @@ struct PlanView: View {
                     // A day can hold more than one independent session (e.g. a run plus a
                     // strength session) — each gets its own row/detail, never merged.
                     ForEach(day.workouts) { workout in
-                        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
-                            workoutRow(workout)
+                        HStack(spacing: 8) {
+                            completionToggle(workout)
+                            NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                                workoutRow(workout)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
         }
         .racePaceCard()
+    }
+
+    private func completionToggle(_ workout: StoredWorkout) -> some View {
+        Button {
+            workout.isCompleted.toggle()
+            try? modelContext.save()
+        } label: {
+            Image(systemName: workout.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(workout.isCompleted ? .racePaceCoral : Color.secondary.opacity(0.4))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -131,15 +159,18 @@ struct PlanView: View {
                 .foregroundStyle(WorkoutStyle.color(for: workout.type))
                 .frame(width: 30, height: 30)
                 .background(WorkoutStyle.color(for: workout.type).opacity(0.15), in: Circle())
+                .opacity(workout.isCompleted ? 0.5 : 1)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(WorkoutStyle.label(for: workout.type))
                     .font(.subheadline.weight(.semibold))
+                    .strikethrough(workout.isCompleted)
                 Text(rowSubtitle(for: workout))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+            .opacity(workout.isCompleted ? 0.6 : 1)
 
             Spacer()
 
@@ -194,7 +225,7 @@ struct PlanView: View {
 
 #Preview {
     NavigationStack {
-        PlanView()
+        PlanView(authService: StravaAuthService())
     }
     .modelContainer(for: [StoredTrainingPlan.self, StoredWorkout.self], inMemory: true)
 }

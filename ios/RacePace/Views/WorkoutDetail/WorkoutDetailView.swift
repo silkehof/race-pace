@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
     let workout: StoredWorkout
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         ZStack {
@@ -10,6 +11,10 @@ struct WorkoutDetailView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     header
+
+                    if workout.isCompleted {
+                        completionCard
+                    }
 
                     if hasStats {
                         statTiles
@@ -125,9 +130,55 @@ struct WorkoutDetailView: View {
             }
 
             Spacer()
+
+            Button {
+                workout.isCompleted.toggle()
+                try? modelContext.save()
+            } label: {
+                Image(systemName: workout.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title)
+                    .foregroundStyle(workout.isCompleted ? .racePaceCoral : Color.secondary.opacity(0.4))
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .racePaceCard()
+    }
+
+    private var completionCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(
+                workout.matchedStravaActivityId != nil ? "Matched from Strava" : "Marked complete",
+                systemImage: "checkmark.seal.fill"
+            )
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.racePaceCoral)
+
+            if let name = workout.matchedActivityName {
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            if workout.matchedActivityDistanceMeters != nil || workout.matchedActivityDurationSeconds != nil {
+                HStack(spacing: 24) {
+                    if let distance = workout.matchedActivityDistanceMeters {
+                        actualStat(value: String(format: "%.1f km", distance / 1000), label: "actual distance")
+                    }
+                    if let duration = workout.matchedActivityDurationSeconds {
+                        actualStat(value: Self.formatDuration(duration), label: "actual duration")
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .racePaceCard()
+    }
+
+    private func actualStat(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(.racePaceStat(18))
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+        }
     }
 
     private var statTiles: some View {

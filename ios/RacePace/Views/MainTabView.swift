@@ -11,7 +11,7 @@ struct MainTabView: View {
             .tabItem { Label("Coach", systemImage: "message.fill") }
 
             NavigationStack {
-                PlanView()
+                PlanView(authService: authService)
             }
             .tabItem { Label("Plan", systemImage: "calendar") }
         }

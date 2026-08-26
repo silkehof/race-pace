@@ -12,6 +12,8 @@
 		17EDB677FAA09FC89084947D /* PlanDateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C6C8BE70812EA6A096A47C /* PlanDateFormatting.swift */; };
 		1B5426CF17868DF06177D0F7 /* TrainingPlanDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF90E4F71BE669C54C0B16E1 /* TrainingPlanDTO.swift */; };
 		1B5A1E457A032CE90F83BA23 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A156B803C2A18C1D07DD0B7C /* ChatViewModel.swift */; };
+		223D01200089200BB1F6ABDF /* ActivityMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA6CB03F2FA93142D9C587A /* ActivityMatcher.swift */; };
+		40B3503E8E73CBD979864278 /* NewPlanIntakeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BDA5178158E1D1D3365742F /* NewPlanIntakeView.swift */; };
 		43B53DC5F48A6E8A571513BF /* CoachChatDTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7260C8A19F7A8402A0994DBE /* CoachChatDTOs.swift */; };
 		43B6988D8E627B7C72D53E47 /* PlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463C3F3240509CD4973807A3 /* PlanStore.swift */; };
 		49022415B146CAAF2BBB9FF8 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F7AC6AC29B668C00C95191 /* MainTabView.swift */; };
@@ -61,6 +63,7 @@
 		0B8EE2E15C219775A67FC3B6 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
 		105135755CFA3291AB2C264D /* PhasedDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhasedDescription.swift; sourceTree = "<group>"; };
 		17B15C965B8635EEB90E18EC /* PlanAdjustmentDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanAdjustmentDTO.swift; sourceTree = "<group>"; };
+		1BDA5178158E1D1D3365742F /* NewPlanIntakeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPlanIntakeView.swift; sourceTree = "<group>"; };
 		1C3D29717A6F6E4942D0CA5F /* StravaConnectViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaConnectViewModel.swift; sourceTree = "<group>"; };
 		226720BDB41C3979606401F9 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		25F73091355746DAF4F1321C /* AppSecrets.swift.example */ = {isa = PBXFileReference; path = AppSecrets.swift.example; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 		A156B803C2A18C1D07DD0B7C /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		A4B00086901C4AC7558B2D56 /* StravaTokenResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaTokenResponse.swift; sourceTree = "<group>"; };
 		AF228FA0CA47976ED3D6B87D /* StoredWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredWorkout.swift; sourceTree = "<group>"; };
+		BCA6CB03F2FA93142D9C587A /* ActivityMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityMatcher.swift; sourceTree = "<group>"; };
 		C2F7AC6AC29B668C00C95191 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CCD6AF8E063F4046CFAE4646 /* StravaAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaAPIClient.swift; sourceTree = "<group>"; };
 		CF90E4F71BE669C54C0B16E1 /* TrainingPlanDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanDTO.swift; sourceTree = "<group>"; };
@@ -135,6 +139,7 @@
 		2DAD893E4FDAC3FFE2ACE826 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BCA6CB03F2FA93142D9C587A /* ActivityMatcher.swift */,
 				6837CCF56F163F31A9A31A65 /* BackendAPIClient.swift */,
 				D6C19CDEF826CD747C9CE326 /* KeychainStore.swift */,
 				463C3F3240509CD4973807A3 /* PlanStore.swift */,
@@ -251,6 +256,7 @@
 			isa = PBXGroup;
 			children = (
 				8A66A200CB51181D87079270 /* ChatView.swift */,
+				1BDA5178158E1D1D3365742F /* NewPlanIntakeView.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -387,6 +393,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA1220893A9C84C2EA0A7BDE /* ActivityListView.swift in Sources */,
+				223D01200089200BB1F6ABDF /* ActivityMatcher.swift in Sources */,
 				6412916BCEC492DB9D60A3A2 /* AppContainer.swift in Sources */,
 				D58137592FB9EC23E271CC59 /* AppSecrets.swift in Sources */,
 				A403A77AEC0FB52A50BAE802 /* AppearanceConfiguration.swift in Sources */,
@@ -397,6 +404,7 @@
 				43B53DC5F48A6E8A571513BF /* CoachChatDTOs.swift in Sources */,
 				B55729D1A4468FFA9A7624D5 /* KeychainStore.swift in Sources */,
 				49022415B146CAAF2BBB9FF8 /* MainTabView.swift in Sources */,
+				40B3503E8E73CBD979864278 /* NewPlanIntakeView.swift in Sources */,
 				5DCCB4E6F600F5A3DF4CB4D4 /* OnboardingFlowView.swift in Sources */,
 				CA72A1942DA6055B29B0D6A6 /* PhasedDescription.swift in Sources */,
 				5F9C6C9E2E8FC062E0E59DF9 /* PlanAdjustmentDTO.swift in Sources */,
