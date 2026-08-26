@@ -33,6 +33,10 @@ enum PlanDateFormatting {
         isoDayFormatter.date(from: isoDay)
     }
 
+    static func isoDayString(from date: Date) -> String {
+        isoDayFormatter.string(from: date)
+    }
+
     static func displayString(from isoDay: String) -> String {
         guard let date = date(from: isoDay) else { return isoDay }
         return displayFormatter.string(from: date)

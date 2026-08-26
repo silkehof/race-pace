@@ -16,6 +16,11 @@ final class ChatViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var createdPlan: TrainingPlanDTO?
     @Published private(set) var planWasUpdated = false
+    /// Set when the athlete explicitly chooses "start a new plan" while one already exists —
+    /// forces create_plan mode for this conversation even though `currentPlan` is non-nil, until
+    /// the new plan is actually created (see `send()`'s mode line and the reset after a
+    /// successful create_training_plan call below).
+    @Published private(set) var isStartingNewPlan = false
 
     private let backend = BackendAPIClient()
     private let authService: StravaAuthService
@@ -23,6 +28,48 @@ final class ChatViewModel: ObservableObject {
 
     init(authService: StravaAuthService) {
         self.authService = authService
+    }
+
+    /// Called when the athlete picks "start a new plan" while one already exists. Clears the
+    /// transcript and any prior create/adjust results — this is a deliberate fresh start, not a
+    /// continuation, so carrying old messages into the new conversation would just confuse the
+    /// coach with stale context.
+    func beginNewPlan() {
+        isStartingNewPlan = true
+        messages = []
+        createdPlan = nil
+        planWasUpdated = false
+        errorMessage = nil
+    }
+
+    /// Backs out of the guided intake screen without sending anything, returning to the
+    /// existing-plan choice prompt.
+    func cancelNewPlan() {
+        isStartingNewPlan = false
+    }
+
+    /// Composes the guided intake form's answers into the first message of a create_plan
+    /// conversation. planGenerationRules.ts is told to expect this — the athlete has already
+    /// stated race name/date/distance/priority explicitly, so the coach shouldn't re-ask for them.
+    func submitGuidedIntake(
+        raceName: String,
+        raceDate: Date,
+        distanceMeters: Double,
+        priority: String,
+        modelContext: ModelContext
+    ) async {
+        let dateString = PlanDateFormatting.isoDayString(from: raceDate)
+        draftText = "I want to train for \(raceName), \(Self.distancePhrase(forMeters: distanceMeters)) on \(dateString). Priority: \(priority)."
+        await send(modelContext: modelContext)
+    }
+
+    private static func distancePhrase(forMeters meters: Double) -> String {
+        let km = meters / 1000
+        if abs(km - 5) < 0.05 { return "a 5K" }
+        if abs(km - 10) < 0.05 { return "a 10K" }
+        if abs(km - 21.0975) < 0.1 { return "a half marathon" }
+        if abs(km - 42.195) < 0.1 { return "a marathon" }
+        return String(format: "a %.1fkm race", km)
     }
 
     /// Best-effort — the coach can still hold a conversation without this, it just won't know
@@ -47,7 +94,9 @@ final class ChatViewModel: ObservableObject {
         defer { isSending = false }
 
         // Mode is auto-detected from persisted state, not an explicit toggle: once a plan exists,
-        // follow-up turns transparently switch to adjust_plan.
+        // follow-up turns transparently switch to adjust_plan — unless the athlete explicitly
+        // chose to start a new plan (isStartingNewPlan), which forces create_plan regardless of
+        // the stale plan still sitting in the store until this new one replaces it.
         let descriptor = FetchDescriptor<StoredTrainingPlan>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         let existingPlans = (try? modelContext.fetch(descriptor)) ?? []
         #if DEBUG
@@ -60,7 +109,7 @@ final class ChatViewModel: ObservableObject {
         do {
             let response = try await backend.sendCoachMessage(
                 CoachMessageRequest(
-                    mode: currentPlan == nil ? "create_plan" : "adjust_plan",
+                    mode: (currentPlan == nil || isStartingNewPlan) ? "create_plan" : "adjust_plan",
                     history: history,
                     message: text,
                     athleteContext: athleteContext,
@@ -93,6 +142,7 @@ final class ChatViewModel: ObservableObject {
             }
             if let plan = response.toolCall?.trainingPlan {
                 createdPlan = plan
+                isStartingNewPlan = false
                 PlanStore.save(plan, in: modelContext)
             }
             if let adjustment = response.toolCall?.planAdjustment, let currentPlan {

@@ -1,12 +1,16 @@
 import Foundation
 import SwiftData
 
-/// Persists a freshly-built plan. Insert-only, deliberately no delete-existing-plan step —
-/// PlanView reads the current plan via `@Query(sort: \.createdAt, order: .reverse).first`, so the
-/// newest plan always wins without risking wiping the only copy via a buggy delete.
 enum PlanStore {
+    /// Persists a freshly-built plan, replacing any existing one. `create_training_plan` can only
+    /// be called in create_plan mode, which the app only enters when there's no plan yet or the
+    /// athlete explicitly chose "start a new plan" (ChatViewModel.beginNewPlan) — both cases mean
+    /// this new plan should become the only one, not sit alongside a stale one no UI ever surfaces.
     @MainActor
     static func save(_ dto: TrainingPlanDTO, in context: ModelContext) {
+        let existingPlans = (try? context.fetch(FetchDescriptor<StoredTrainingPlan>())) ?? []
+        existingPlans.forEach(context.delete)
+
         let workouts = dto.workouts.map { workout in
             StoredWorkout(
                 id: workout.id.uuidString,
