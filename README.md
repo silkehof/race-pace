@@ -8,8 +8,7 @@ that plan when you skip or reschedule a workout.
 end-to-end on a device — Strava OAuth, chat, plan persistence, and the Plan tab are all
 real. There are no iOS tests, chat transcripts aren't persisted across a force-quit, and
 plans are generated once rather than re-derived as training progresses. It's a pet
-project, not a product, and it's public mainly because the design work behind it turned
-out to be more interesting than the app itself.
+project and not a polished product (yet), I'm continuously working on it. 
 
 ## The part worth reading
 
