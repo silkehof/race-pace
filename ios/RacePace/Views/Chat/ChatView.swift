@@ -44,13 +44,14 @@ struct ChatView: View {
             case .guidedIntake:
                 NewPlanIntakeView(
                     onCancel: existingPlan != nil ? { viewModel.cancelNewPlan() } : nil,
-                    onSubmit: { raceName, raceDate, distanceMeters, priority in
+                    onSubmit: { raceName, raceDate, distanceMeters, priority, goalTimeSeconds in
                         Task {
                             await viewModel.submitGuidedIntake(
                                 raceName: raceName,
                                 raceDate: raceDate,
                                 distanceMeters: distanceMeters,
                                 priority: priority,
+                                goalTimeSeconds: goalTimeSeconds,
                                 modelContext: modelContext
                             )
                         }
@@ -128,7 +129,7 @@ struct ChatView: View {
                                 .foregroundStyle(.racePaceCoral)
                         }
                         if viewModel.isSending {
-                            ProgressView().tint(.racePaceCoral)
+                            sendingIndicator
                         }
                     }
                     .padding()
@@ -165,6 +166,25 @@ struct ChatView: View {
                 .opacity(viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? 0.4 : 1)
             }
             .padding(12)
+        }
+    }
+
+    /// Plain spinner at first; after a few seconds it starts saying how long it has been going.
+    /// Building a plan takes minutes, and silence for that long is the difference between "it's
+    /// working" and "it's broken".
+    @ViewBuilder
+    private var sendingIndicator: some View {
+        let startedAt = viewModel.sendingStartedAt ?? .now
+        TimelineView(.periodic(from: startedAt, by: 1)) { context in
+            let elapsed = Int(context.date.timeIntervalSince(startedAt))
+            HStack(spacing: 8) {
+                ProgressView().tint(.racePaceCoral)
+                if elapsed >= 10 {
+                    Text("Thinking… \(elapsed)s. Building a full plan takes a few minutes.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 

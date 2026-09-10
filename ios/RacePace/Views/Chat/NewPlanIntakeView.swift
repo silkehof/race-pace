@@ -7,13 +7,14 @@ import SwiftUI
 /// genuinely conversational and doesn't reduce to a fixed set of fields.
 struct NewPlanIntakeView: View {
     let onCancel: (() -> Void)?
-    let onSubmit: (_ raceName: String, _ raceDate: Date, _ distanceMeters: Double, _ priority: String) -> Void
+    let onSubmit: (_ raceName: String, _ raceDate: Date, _ distanceMeters: Double, _ priority: String, _ goalTimeSeconds: Int?) -> Void
 
     @State private var raceName = ""
     @State private var raceDate = Calendar.current.date(byAdding: .month, value: 3, to: .now) ?? .now
     @State private var distanceOption = DistanceOption.tenK
     @State private var customDistanceKm = ""
     @State private var priority = "A"
+    @State private var goalTime = ""
 
     private enum DistanceOption: String, CaseIterable, Identifiable {
         case fiveK = "5K", tenK = "10K", half = "Half", marathon = "Full", custom = "Custom"
@@ -31,6 +32,18 @@ struct NewPlanIntakeView: View {
 
     private var resolvedDistanceMeters: Double? {
         distanceOption.meters ?? Double(customDistanceKm).flatMap { $0 > 0 ? $0 * 1000 : nil }
+    }
+
+    /// Accepts "45:00" and "3:15:00". Deliberately forgiving about what it can't read: a goal time
+    /// is optional, so an unparseable one is simply treated as not given rather than blocking the
+    /// form or nagging — the coach can still ask in conversation.
+    private var resolvedGoalTimeSeconds: Int? {
+        let parts = goalTime.split(separator: ":").map(String.init)
+        guard (2...3).contains(parts.count) else { return nil }
+        let numbers = parts.compactMap(Int.init)
+        guard numbers.count == parts.count, numbers.allSatisfy({ $0 >= 0 }) else { return nil }
+        let seconds = numbers.reduce(0) { $0 * 60 + $1 }
+        return seconds > 0 ? seconds : nil
     }
 
     private var canSubmit: Bool {
@@ -88,6 +101,18 @@ struct NewPlanIntakeView: View {
                     }
                 }
 
+                field(label: "Goal time (optional)") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        TextField("e.g. 45:00", text: $goalTime)
+                            .keyboardType(.numbersAndPunctuation)
+                            .padding(12)
+                            .background(Color.racePaceCard, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Text("If you have one in mind, we'll check it against your recent running. Training paces come from what you've actually run either way.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 field(label: "Priority") {
                     VStack(alignment: .leading, spacing: 6) {
                         Picker("Priority", selection: $priority) {
@@ -104,7 +129,7 @@ struct NewPlanIntakeView: View {
 
                 Button {
                     guard let distanceMeters = resolvedDistanceMeters else { return }
-                    onSubmit(raceName.trimmingCharacters(in: .whitespaces), raceDate, distanceMeters, priority)
+                    onSubmit(raceName.trimmingCharacters(in: .whitespaces), raceDate, distanceMeters, priority, resolvedGoalTimeSeconds)
                 } label: {
                     Text("Start planning")
                         .font(.headline)
@@ -139,5 +164,5 @@ struct NewPlanIntakeView: View {
 }
 
 #Preview {
-    NewPlanIntakeView(onCancel: {}, onSubmit: { _, _, _, _ in })
+    NewPlanIntakeView(onCancel: {}, onSubmit: { _, _, _, _, _ in })
 }
