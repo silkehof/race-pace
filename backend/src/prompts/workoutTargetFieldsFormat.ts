@@ -1,0 +1,4 @@
+/** Shared between planGenerationRules and adjustmentRules — both tools accept the same workout
+ * shape (create_training_plan's `workouts`, propose_plan_adjustment's `changes[].after`), so this
+ * gap would otherwise need fixing twice and could drift back out of sync. */
+export const workoutTargetFieldsFormat = `Always populate \`targetDistanceMeters\` (in meters) for any workout with a concrete distance, and \`targetDurationSeconds\`/\`targetPaceSecPerKm\` wherever a duration or pace applies — these structured fields are what the app actually uses for weekly-mileage totals and stat display, not the \`description\` text. A workout described as "6km easy" must also carry \`targetDistanceMeters: 6000\`; writing the number only in prose leaves the app showing 0km for that workout and the week it's in. Only leave these null when there's genuinely no concrete number — a qualitative strength session, a rest day, or similar.`;

@@ -7,6 +7,8 @@ import {
   qualifiedToolName,
   type CapturedToolCall,
 } from "../schemas/agentTools.js";
+import type { PlanBaseline } from "./athleteContext.js";
+import type { CurrentPlanWorkout } from "./planValidation.js";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -21,12 +23,16 @@ export interface CallClaudeParams {
    * the Agent SDK's own multi-turn session/resume mechanism. */
   history: ChatTurn[];
   userMessage: string;
-  /** Workout IDs that exist in the athlete's current plan, for propose_plan_adjustment's
-   * cross-check. Empty when there's no active plan yet (create_training_plan mode). */
-  knownWorkoutIds: ReadonlySet<string>;
+  /** The athlete's current plan, for propose_plan_adjustment's workoutId cross-check and for
+   * checking the plan the proposed changes would produce. Empty in create_training_plan mode,
+   * where there is no active plan yet. */
+  currentWorkouts: readonly CurrentPlanWorkout[];
   /** Which coach tool(s) to expose this turn — scoped per mode, matching the mode-specific rules
    * block passed as systemRules. */
   enabledTools: Array<CapturedToolCall["name"]>;
+  /** What the athlete has actually been running, for create_training_plan's load advisories.
+   * Empty in adjust_plan mode, where no athleteContext is sent. */
+  baseline?: PlanBaseline;
 }
 
 export interface CallClaudeResult {
@@ -56,7 +62,7 @@ function subprocessEnv(): NodeJS.ProcessEnv {
 
 export async function callClaude(params: CallClaudeParams): Promise<CallClaudeResult> {
   const captured: CapturedToolCall[] = [];
-  const allTools = buildCoachTools(params.knownWorkoutIds, captured);
+  const allTools = buildCoachTools(params.currentWorkouts, captured, params.baseline);
   const activeTools = params.enabledTools.map((name) => allTools[name]);
 
   let text = "";

@@ -1,6 +1,11 @@
 import { createSdkMcpServer, tool, type SdkMcpToolDefinition } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import { validateCreateTrainingPlan, validatePlanAdjustment } from "../services/planValidation.js";
+import {
+  validateCreateTrainingPlan,
+  validatePlanAdjustment,
+  type CurrentPlanWorkout,
+} from "../services/planValidation.js";
+import type { PlanBaseline } from "../services/athleteContext.js";
 
 // Zod mirror of shared/schema/*.json, in the same spirit as the iOS Codable mirror described in
 // shared/README.md: the Agent SDK's tool() needs a Zod shape (not raw JSON Schema) to build the
@@ -24,9 +29,21 @@ const workoutTypeEnum = z.enum([
 const workoutShape = {
   date: z.string().describe("ISO date, YYYY-MM-DD"),
   type: workoutTypeEnum,
-  targetDistanceMeters: z.number().min(0).nullable().optional(),
-  targetDurationSeconds: z.number().min(0).nullable().optional(),
-  targetPaceSecPerKm: z.number().min(0).nullable().optional(),
+  targetDistanceMeters: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional()
+    .describe(
+      "Required whenever the workout has a concrete distance (nearly always for runs) — the app's weekly-mileage totals and stat display read this field, not the description text. E.g. a workout described as '6km easy' must set this to 6000. Null only for workouts with no concrete distance (rest day, a qualitative strength session).",
+    ),
+  targetDurationSeconds: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional()
+    .describe("Set whenever a duration applies (e.g. a time-based tempo session, a strength session's total length)."),
+  targetPaceSecPerKm: z.number().min(0).nullable().optional().describe("Set whenever a specific target pace applies, in seconds per km."),
   description: z.string().min(1),
   coachNotes: z.string().nullable().optional(),
 };
@@ -84,20 +101,22 @@ export function qualifiedToolName(name: CapturedToolCall["name"]): string {
 /**
  * Builds the two coach tools bound to one request's context, and an array that the last
  * successfully-validated call gets pushed onto. Built per-request (not module-level) because
- * propose_plan_adjustment's workoutId cross-check depends on the athlete's current plan.
+ * both tools' checks depend on this request's context — the athlete's current plan, and what they
+ * have actually been running.
  * A validation failure is returned to Claude as a tool error (not thrown) so it can self-correct
  * within the same turn instead of failing the whole request.
  */
 export function buildCoachTools(
-  knownWorkoutIds: ReadonlySet<string>,
+  currentWorkouts: readonly CurrentPlanWorkout[],
   captured: CapturedToolCall[],
+  baseline: PlanBaseline = {},
 ): Record<CapturedToolCall["name"], SdkMcpToolDefinition<any>> {
   const createTrainingPlanTool = tool(
     "create_training_plan",
     "Create the athlete's training plan for an upcoming race, based on the goal discussed in conversation and their current training context. Only call this once you know at minimum the race name, date, and distance — ask clarifying questions first if any of those are missing or ambiguous.",
     createTrainingPlanShape,
     async (input) => {
-      const result = validateCreateTrainingPlan(input);
+      const result = validateCreateTrainingPlan(input, undefined, baseline);
       if (!result.valid) {
         return {
           content: [{ type: "text", text: `Invalid plan, fix and retry: ${result.errors.join("; ")}` }],
@@ -105,7 +124,17 @@ export function buildCoachTools(
         };
       }
       captured.push({ name: "create_training_plan", input });
-      return { content: [{ type: "text", text: "Plan accepted." }] };
+      // Advisory only, never enforced — these are the numeric guidelines from
+      // planGenerationRules.ts (single-session spike guard, long-run share, cutback cadence,
+      // taper depth and shape, ~80/20 by time) computed against what was actually generated. The
+      // athlete is the one training and may have good reason to deviate; this never blocks
+      // acceptance. It just gives Claude visibility into its own plan's numbers, so a deliberate
+      // deviation can be named in the rationale (for the athlete's benefit) rather than passing
+      // silently either way.
+      const advisoryNote = result.advisories?.length
+        ? ` Advisory, not blocking: ${result.advisories.join("; ")} — mention any of these in the rationale if the deviation is deliberate, so the athlete sees the reasoning rather than just the plan.`
+        : "";
+      return { content: [{ type: "text", text: `Plan accepted.${advisoryNote}` }] };
     },
   );
 
@@ -114,7 +143,7 @@ export function buildCoachTools(
     "Propose a concrete adjustment to the athlete's existing training plan in response to a skipped or rescheduled workout. Ask clarifying questions first if the reason for the change is ambiguous (one-off vs. a pattern, illness vs. being busy); only call this once you have enough context to propose a sensible, scoped change. Every workoutId you reference must be one that actually exists in the current plan provided in context.",
     proposePlanAdjustmentShape,
     async (input) => {
-      const result = validatePlanAdjustment(input, knownWorkoutIds);
+      const result = validatePlanAdjustment(input, currentWorkouts, baseline);
       if (!result.valid) {
         return {
           content: [{ type: "text", text: `Invalid adjustment, fix and retry: ${result.errors.join("; ")}` }],
@@ -122,7 +151,14 @@ export function buildCoachTools(
         };
       }
       captured.push({ name: "propose_plan_adjustment", input });
-      return { content: [{ type: "text", text: "Adjustment accepted." }] };
+      // Same advisory contract as create_training_plan, computed against the plan as it would
+      // stand after this change: a reshuffle can drop a long run next to a quality session, or
+      // turn an already-scheduled long run into a spike once a gap in training has lowered what
+      // the athlete has actually built up to.
+      const advisoryNote = result.advisories?.length
+        ? ` Advisory, not blocking: ${result.advisories.join("; ")} — mention any of these in the rationale if the deviation is deliberate.`
+        : "";
+      return { content: [{ type: "text", text: `Adjustment accepted.${advisoryNote}` }] };
     },
   );
 
