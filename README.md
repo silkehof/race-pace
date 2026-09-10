@@ -1,13 +1,55 @@
 # race-pace
 
-A personal training-plan coach: connects to Strava, builds a race training plan through a chat conversation with an LLM coach, and adapts the plan when you skip or reschedule workouts.
+A personal training-plan coach for runners. It connects to Strava for your training
+history, builds a race plan through a chat conversation with an LLM coach, and adapts
+that plan when you skip or reschedule a workout.
+
+**Status: working prototype, actively unfinished.** Plan generation and adjustment work
+end-to-end on a device — Strava OAuth, chat, plan persistence, and the Plan tab are all
+real. There are no iOS tests, chat transcripts aren't persisted across a force-quit, and
+plans are generated once rather than re-derived as training progresses. It's a pet
+project, not a product, and it's public mainly because the design work behind it turned
+out to be more interesting than the app itself.
+
+## The part worth reading
+
+The interesting problem here wasn't the app, it was discovering that most of what the
+coach "knew" was wrong.
+
+The plan generator started out encoding standard running-community advice: the 10% rule,
+cutback weeks every 3–4 weeks, never two hard days back-to-back. Auditing those
+assumptions against the primary literature
+([`docs/research/research_output.md`](docs/research/research_output.md)) found that
+several are folklore and one is close to backwards:
+
+- **The 10% rule failed its only randomized controlled trial**, and the acute:chronic
+  workload ratio doesn't predict injury in the largest running dataset assembled. What
+  *does* predict it is the single-session spike — a run exceeding twice the longest run
+  of the prior 30 days carried a 2.28× overuse-injury hazard across 5,205 runners. So
+  the validator stopped policing week-over-week growth and started policing that.
+- **The most consequential bug wasn't in the assumption list at all.** The generator
+  prescribed paces with no performance benchmark, which means every pace in every plan
+  was invented. That became [`paceEngine.ts`](backend/src/services/paceEngine.ts) —
+  VDOT derived from a *recent actual performance*, never from the athlete's goal time,
+  since training at a speed you can't yet hold is how people get hurt.
+- **Load accounting moved off calendar weeks onto rolling 7-day windows.** A Sunday long
+  run and the days after it are one block of training; a Monday boundary splits them, so
+  a genuinely hard stretch can read as two moderate weeks and a real deload can vanish
+  entirely.
+
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) covers how the three parts fit together,
+what's implemented versus scaffolded, and the known gaps.
+
+## Layout
 
 - `ios/` — SwiftUI app (SwiftData for local storage)
 - `backend/` — thin, stateless TypeScript/Node proxy (Strava OAuth token exchange/refresh, Claude coach chat proxy — holds the secrets the app can't)
 - `shared/schema/` — JSON Schema contract for the chat tool-call payloads, used by the backend for validation and hand-mirrored as Codable DTOs on iOS
-- `docs/` — one-time manual setup steps (Strava API app registration)
+- `docs/` — architecture overview, the research audit, and one-time manual setup steps
 
-See `docs/strava-app-setup.md` before running the backend.
+See `docs/strava-app-setup.md` before running the backend. If you fork this, you'll need
+to redeploy the OAuth redirect page under your own GitHub account — that doc explains why
+and what to change.
 
 ## Backend
 
@@ -25,6 +67,7 @@ claude login             # one-time: authenticates the chat coach against your C
                           # (@anthropic-ai/claude-code); already logged in if you're reading this
                           # from inside a Claude Code session on this machine.
 npm run dev              # serves http://localhost:3000
+npm test                 # 88 tests: pace engine, plan validation, athlete context, coach route
 ```
 
 Try it once running (needs the Strava env vars above; the coach reply below will actually call
@@ -37,6 +80,14 @@ curl -X POST http://localhost:3000/api/coach/message \
   -d '{"mode":"create_plan","message":"I want to train for a 10K on 2026-11-01, this is my A race."}'
 ```
 
+The backend is built to run on localhost against a single user. It authenticates with one
+shared secret and doesn't rate-limit, so don't put it on a public host as-is.
+
 ## iOS
 
 Open `ios/RacePace.xcodeproj` in Xcode (generated via `xcodegen generate` from `ios/project.yml` — re-run that after adding/removing source files).
+
+## License
+
+None — all rights reserved. This is published to be read, not reused. If you want to do
+something with it, ask.

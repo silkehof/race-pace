@@ -86,16 +86,48 @@ app
   so a hallucinated `workoutId` gets fed back for Claude to self-correct
   within the same turn, rather than failing the whole request. The last
   successfully-validated call is captured and returned to the route.
-- **`services/planValidation.ts`** — validates `create_training_plan` and
+- **`services/paceEngine.ts`** — derives training paces from a *recent actual
+  performance* of the athlete's (Daniels/Gilbert VDOT, cross-checked against
+  Riegel for race equivalence, with a buffer on marathon extrapolations).
+  Added after an evidence audit (`docs/research/research_output.md`) found
+  the generator's single most consequential defect was prescribing paces with
+  no performance benchmark at all — every pace in a plan was invented. Paces
+  are deliberately **never** derived from the athlete's goal time, which would
+  prescribe training at a speed they cannot yet hold; the goal time is only
+  checked for realism against the benchmark. When no usable benchmark exists
+  the coach is told so explicitly and instructed to prescribe by effort,
+  rather than silently reverting to making numbers up.
+- **`services/athleteContext.ts`** — types and narrows the free-form
+  `athleteContext` the app sends, and extracts the training baseline the plan
+  validator judges a generated plan's opening load against.
+- **`services/planValidation.ts`** — load accounting runs on **rolling 7-day
+  windows**, not calendar weeks. Calendar weeks are how the athlete reads a
+  plan (and the Plan tab still groups by Monday), but they are the wrong unit
+  for judging load: a Sunday long run and the days after it are one block of
+  training, and a Monday boundary splits them, so a hard stretch can read as
+  two moderate weeks and a real deload can vanish across the boundary. The
+  cutback check additionally works on a session-RPE surrogate (minutes × an
+  intensity weight per session type) rather than distance, since a recovery
+  week is about total stress coming down; the taper check stays on distance,
+  because that is what the taper meta-analysis manipulated. It also validates
+  `create_training_plan` and
   `propose_plan_adjustment` tool-call payloads against the shared JSON
   Schemas via `ajv` (the `Ajv2020` build specifically — the shared schemas
   declare `$schema: draft/2020-12`, which the plain `Ajv` core doesn't
   recognize), and additionally checks that every `workoutId` a
   `propose_plan_adjustment` payload references actually exists in the plan
   the client echoed back (a check neither schema format can express — it's
-  aimed at catching Claude hallucinating an ID).
+  aimed at catching Claude hallucinating an ID). An adjustment is then applied
+  to that echoed plan and the result checked for the two things a reshuffle
+  can actually break: a hard session landing next to another one, and an
+  already-scheduled long run that has become a single-session spike because a
+  gap in training lowered what the athlete has really built up to. Whole-plan
+  observations (taper depth, cutback cadence) are deliberately not repeated
+  there — an adjustment is scoped to a week or two, so they would be noise
+  about weeks the change never touched.
 - **`routes/coach.ts`** — `POST /api/coach/message`. Body:
-  `{ mode: "create_plan" | "adjust_plan", message, history?, athleteContext?, currentPlan? }`.
+  `{ mode: "create_plan" | "adjust_plan", message, history?, athleteContext?,
+  goalDistanceMeters?, goalTimeSeconds?, currentPlan? }`.
   Picks the mode-specific rules block and tool, builds `knownWorkoutIds` from
   `currentPlan.workouts[].id` for the validation cross-check, and — for
   `adjust_plan` — also JSON-stringifies the **whole** `currentPlan` (goal +
@@ -103,18 +135,34 @@ app
   `athleteContext` is appended for `create_plan`. This was a real early bug:
   without it, the coach could confirm a `workoutId` existed but had no way to
   know what that workout actually *was* — it could validate references but
-  not reason about them. Returns `{ text, toolCall }`.
+  not reason about them. Both modes also get `athleteContext` and the
+  `paceGuidance` block derived from it — an adjustment that inserts or
+  rewrites a workout prescribes paces exactly like plan creation does, and
+  needs the athlete's real recent training for the same load checks. Returns
+  `{ text, toolCall }`.
+The guided intake (`NewPlanIntakeView`) collects race name, date, distance and
+priority, plus an optional goal time. The goal time is only ever used to tell
+the athlete whether their target matches their current fitness — training paces
+are derived from what they have actually run, never from what they hope to run,
+since prescribing from an unachieved goal trains them at a speed they cannot
+yet hold.
+
 - **`prompts/`** — `systemPersona` (coach tone and philosophy — consistency
-  over a perfect plan on paper, ≤10%/week long-run growth, always taper) plus
-  two mode-specific rule blocks: `planGenerationRules` (building a plan from
+  over a perfect plan on paper, never inventing paces, watching the
+  single-session distance spike rather than week-over-week percentage growth,
+  ~80/20 easy by *time*, taper by cutting volume while holding intensity and
+  frequency) plus two mode-specific rule blocks: `planGenerationRules` (building a plan from
   scratch — including "distinct same-day activities get separate workout
   entries, never folded into one description") and `adjustmentRules`
   (responding to a skip/reschedule, **or** a direct edit request with no
   skip/reschedule involved — `triggerEvent.type: "correction"` — e.g.
   "relabel that as strength").
 
-`backend/test/` is still empty — none of this has automated test coverage
-yet, only the manual/curl verification described in the README.
+`backend/test/` covers the deterministic pieces — plan validation (structural
+errors vs. advisory training-science observations) and the pace engine's
+physiology, spot-checked against Daniels' published tables. The conversational
+behaviour on top of them is still only verified manually, as described in the
+README.
 
 ### Claude auth: subscription, not API key
 
@@ -233,9 +281,28 @@ Views/
    navigation (see below) — kept only as reference/debug scaffolding.
 
 **Coaching chat & plan (`MainTabView`'s "Coach" tab, `ChatView`/`ChatViewModel`):**
-1. On appear, `loadAthleteContext()` best-effort pulls the last 28 days of
-   Strava activity into an `AthleteContextSummary` (weekly km, run count,
-   longest run) — silently skipped if it fails, never surfaced as a chat error.
+1. On appear, `loadAthleteContext()` best-effort pulls the last 120 days of
+   Strava activity into an `AthleteContextSummary` — silently skipped if it
+   fails, never surfaced as a chat error. Three different windows come out of
+   that one fetch, each for a different reason: 28 days for current volume and
+   run frequency (what a plan's opening weeks should continue from), 30 days
+   for the longest single run (the denominator of the backend's spike guard),
+   and the full 120 for `benchmarkCandidates` — the fastest run in each
+   distance band plus anything race-titled, each carrying its elevation gain,
+   high/low range and treadmill flag so the backend can reject an effort whose
+   time doesn't convert into road paces. The app deliberately doesn't rank
+   those candidates itself: comparing a hard 5K against a strong 18km is a
+   VDOT calculation, which lives on the backend.
+
+   Treadmill and virtual runs are counted in full by every volume figure —
+   they are real training load, and omitting them understated a treadmill
+   runner's base enough to disable the spike guard, which measures against
+   their longest recent run. They are separately excluded from serving as a
+   *performance* benchmark, since the distance is device-estimated and a given
+   pace is easier indoors; one is still sent along, flagged, so the coach can
+   explain why an athlete who has obviously been training has no usable
+   benchmark rather than claiming none was found. Trail runs remain outside
+   both, for now.
 2. Every `send()` call **auto-detects mode from persisted state**, not a UI
    toggle: it fetches the current `StoredTrainingPlan` via `FetchDescriptor`
    (not `@Query` — this is a plain `@MainActor` class, not a View). No plan
@@ -275,9 +342,16 @@ Views/
 
 ### Known gaps, deliberately not built yet
 
-- **No automated tests** — `backend/test/`, `RacePaceTests`, `RacePaceUITests`
-  all exist as targets but contain no test files; everything so far has been
-  verified by hand (build + simulator + curl).
+- **No iOS tests** — `RacePaceTests` and `RacePaceUITests` exist as targets
+  but contain no test files; the app side is still verified by hand (build +
+  simulator + curl). The backend's deterministic logic is covered in
+  `backend/test/`.
+- **Plans are generated once, then patched reactively** — the evidence audit
+  argues for rolling re-planning instead (re-deriving paces and volume every
+  2-4 weeks from completed training), since individual response to an
+  identical program varies several-fold. The pace engine makes this possible
+  — re-running it on a fresh benchmark is all it would take — but nothing
+  currently triggers it.
 - **Chat history itself isn't persisted** — only the plan is. Force-quitting
   mid-conversation loses the transcript (but not the plan).
 - **No Settings screen** — `BackendAPIClient.baseURL` already supports a
@@ -298,10 +372,11 @@ Views/
 | Plan adjustment (iOS) | Implemented end-to-end: chat -> propose_plan_adjustment (skip/reschedule/correction) -> in-place SwiftData mutation -> Plan tab |
 | Plan UI (week/day grouping, categories, detail view) | Implemented |
 | Navigation (Coach/Plan switch, skip onboarding once connected) | Implemented |
-| Automated tests | None yet, in either backend or iOS |
+| Automated tests | Backend: 88 tests across pace engine, plan validation, athlete context, coach route, auth, and Strava OAuth. iOS: none yet |
 
-The natural next steps implied by the code as it stands: automated test
-coverage (currently zero), a Settings screen for the backend-URL override
-that already exists in code, and deciding whether `ActivityListView`
-deserves a real home in navigation or should be deleted now that it's
-orphaned.
+The natural next steps implied by the code as it stands: iOS test coverage
+(the backend is covered, the app side is not), rolling re-planning on top of
+the pace engine rather than one-shot generation, a Settings screen for the
+backend-URL override that already exists in code, and deciding whether
+`ActivityListView` deserves a real home in navigation or should be deleted
+now that it's orphaned.
