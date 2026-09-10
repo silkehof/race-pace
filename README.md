@@ -14,8 +14,8 @@ plans are generated once rather than re-derived as training progresses.
 
 ## The part worth reading
 
-The interesting problem here wasn't the app, it was discovering that most of what the
-coach "knew" was wrong.
+While generating a usable training plan seemed simple at first, I discovered that most of what the
+coach "knew" was inaccurate or even wrong.
 
 The plan generator started out encoding standard running-community advice: the 10% rule,
 cutback weeks every 3–4 weeks, never two hard days back-to-back. Auditing those
