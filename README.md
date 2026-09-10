@@ -89,5 +89,6 @@ Open `ios/RacePace.xcodeproj` in Xcode (generated via `xcodegen generate` from `
 
 ## License
 
-None — all rights reserved. This is published to be read, not reused. If you want to do
-something with it, ask.
+None, so default copyright applies. That's an omission rather than a position — it's a
+personal project and I haven't thought about packaging it for anyone else. If something
+here is useful to you, just ask.
