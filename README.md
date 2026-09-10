@@ -2,14 +2,15 @@
 
 A personal training-plan coach for runners. It connects to Strava for your training
 history, builds a race plan through a chat conversation with an LLM coach, and adapts
-that plan when you skip or reschedule a workout. I want to create something less "cookie-cutter-template"
-than the other plans out there.
+that plan when you skip or reschedule a workout. 
+I want to create something less "cookie-cutter-template" than the other plans out there.
+The real goal: Turn this pet project in product that gets me across the finish line
+of Hamburg Marathon 2027 in 3h45min.
 
 **Status: working prototype, actively unfinished.** Plan generation and adjustment work
 end-to-end on a device — Strava OAuth, chat, plan persistence, and the Plan tab are all
 real. There are no iOS tests, chat transcripts aren't persisted across a force-quit, and
-plans are generated once rather than re-derived as training progresses. It's a pet
-project and not a polished product (yet), I'm continuously working on it. 
+plans are generated once rather than re-derived as training progresses.
 
 ## The part worth reading
 
