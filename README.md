@@ -86,9 +86,3 @@ shared secret and doesn't rate-limit, so don't put it on a public host as-is.
 ## iOS
 
 Open `ios/RacePace.xcodeproj` in Xcode (generated via `xcodegen generate` from `ios/project.yml` — re-run that after adding/removing source files).
-
-## License
-
-None, so default copyright applies. That's an omission rather than a position — it's a
-personal project and I haven't thought about packaging it for anyone else. If something
-here is useful to you, just ask.
